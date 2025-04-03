@@ -1,0 +1,63 @@
+function sendReceipt(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Form Responses 1");
+  if (!sheet) {
+    Logger.log("Sheet not found!");
+    return;
+  }
+
+  var lastRow = sheet.getLastRow();
+  
+  if (lastRow <= 1) {
+    Logger.log("No new responses found.");
+    return;
+  }
+
+  var email = sheet.getRange(lastRow, 2).getValue().trim();  
+  var pupilName = sheet.getRange(lastRow, 3).getValue().trim();  
+  var date = sheet.getRange(lastRow, 5).getValue();  
+  var totalFee = parseFloat(sheet.getRange(lastRow, 7).getValue()) || 0;  
+  var amountPaid = parseFloat(sheet.getRange(lastRow, 8).getValue()) || 0;  
+  var balance = totalFee - amountPaid;  
+
+  Logger.log("Processing receipt for: " + email);
+
+  if (!email || !email.includes("@")) {
+    Logger.log("Invalid email found: " + email);
+    return;
+  }
+
+  // Format the date to MM/DD/YYYY
+  var formattedDate = Utilities.formatDate(new Date(date), Session.getScriptTimeZone(), "MM/dd/yyyy");
+
+  // If the balance is negative, show overpayment message
+  var balanceMessage = balance < 0 
+    ? `<p>💸 <b>Overpayment:</b> NGN ${Math.abs(balance).toFixed(2)}. Please contact us for a refund or clarification.</p>`
+    : `<p>❌ <b>Balance Due:</b> NGN ${balance.toFixed(2)}</p>`;
+
+  // Format the receipt message with HTML
+  var receiptMessage = `
+    <p>Dear Parent/Guardian of <b>${pupilName}</b>,</p>
+    <p>Thank you for making a payment towards <b>${pupilName}'s</b> school fees.</p>
+    <p>📅 <b>Date:</b> ${formattedDate}</p>
+    <p>💰 <b>Total Fee:</b> NGN ${totalFee.toFixed(2)}</p>
+    <p>✅ <b>Amount Paid:</b> NGN ${amountPaid.toFixed(2)}</p>
+    ${balanceMessage}
+    <p>Please ensure that the remaining balance (if any) is settled as soon as possible.</p>
+    <p>ℹ️ If you have any questions, feel free to contact us.</p>
+    <br>
+    <b>Best regards,</b><br>
+    <b>Bliss Children School</b><br>
+    📞 <a href="tel:+2347040217341">+2347040217341</a><br>
+    📧 <a href="mailto:bcsversatileleaders@gmail.com">bcsversatileleaders@gmail.com</a><br>
+  `;
+
+  // Send the email receipt
+  MailApp.sendEmail({
+    to: email,
+    subject: "School Fee Payment Receipt - Bliss Children School",
+    htmlBody: receiptMessage,
+    replyTo: "bcsversatileleaders@gmail.com"
+  });
+
+  Logger.log("Receipt sent to: " + email);
+}
